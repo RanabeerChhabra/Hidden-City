@@ -113,30 +113,41 @@ document.getElementById("swap").addEventListener("click", () => {
     [destinationInput.dataset.code, originInput.dataset.code];
 });
 
-form.addEventListener("submit", async (event) => {
+let lastQuery = null;
+
+form.addEventListener("submit", (event) => {
   event.preventDefault();
-  const body = {
+  const query = {
     origin: originInput.dataset.code,
     destination: destinationInput.dataset.code,
     date: document.getElementById("date").value,
-    include_hidden: document.getElementById("include-hidden").checked,
   };
-
-  if (!body.origin || !body.destination) {
+  if (!query.origin || !query.destination) {
     showStatus("Pick both airports from the list.", true);
     return;
   }
+  // Step 1: normal fares only (1 search). Hidden-city fares come on request.
+  runSearch(query, false);
+});
 
+document.getElementById("hidden-go").addEventListener("click", () => {
+  // Step 2: same trip, now also searching the cities beyond the destination.
+  if (lastQuery) runSearch(lastQuery, true);
+});
+
+async function runSearch(query, includeHidden) {
   const button = form.querySelector(".go");
   button.disabled = true;
   results.hidden = true;
-  showStatus(`<span class="spinner"></span>Searching ${body.origin} → ${body.destination} and the cities beyond it. New routes take a few seconds…`);
+  showStatus(includeHidden
+    ? `<span class="spinner"></span>Checking cities beyond ${query.destination} for hidden-city fares…`
+    : `<span class="spinner"></span>Searching ${query.origin} → ${query.destination}…`);
 
   try {
-    const response = await fetch("/api/search", {
+    const response = await fetch(window.SEARCH_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...query, include_hidden: includeHidden }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -144,15 +155,16 @@ form.addEventListener("submit", async (event) => {
       return;
     }
     statusBox.hidden = true;
+    lastQuery = query;
     lastResult = data;
-    activeTab = "best";
+    activeTab = includeHidden ? "best" : "normal";
     render();
   } catch (error) {
-    showStatus("Couldn't reach the server. Is app.py running?", true);
+    showStatus("Couldn't reach the server. Please try again.", true);
   } finally {
     button.disabled = false;
   }
-});
+}
 
 function showStatus(html, isError = false) {
   statusBox.innerHTML = html;
@@ -189,7 +201,8 @@ function render() {
   const dateText = new Date(r.date + "T00:00").toLocaleDateString("en-IN", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
-  let meta = `${dateText} · ${r.cities_searched.length} routes checked ` +
+  const n = r.cities_searched.length;
+  let meta = `${dateText} · ${n} route${n === 1 ? "" : "s"} checked ` +
     `(${r.cached_searches} saved, ${r.live_searches} live)`;
   if (r.prices_age_minutes != null) {
     const m = r.prices_age_minutes;
@@ -198,8 +211,16 @@ function render() {
       : ` · prices checked ${Math.round(m / 60)} h ago`;
   }
   if (r.problems.length) meta += ` · ${r.problems.length} couldn't be searched right now`;
-  if (r.searches_left != null) meta += ` · ${r.searches_left} searches left this month`;
   document.getElementById("meta").textContent = meta;
+
+  // Offer the hidden-city check until it has been run for this trip.
+  const cta = document.getElementById("hidden-cta");
+  cta.hidden = r.hidden_checked;
+  if (!r.hidden_checked) {
+    document.getElementById("hidden-cta-text").textContent =
+      `We'll check cities beyond ${names[r.destination]} for tickets that stop there first` +
+      (r.hidden_cost ? ` (${r.hidden_cost} more searches).` : ".");
+  }
 
   drawTabs();
   drawList();
@@ -220,7 +241,8 @@ function drawTabs() {
       id: "best",
       label: "Best overall",
       price: best ? rupees(best.price) : "–",
-      sub: r.best_overall === "hidden" ? `Hidden city · save ${rupees(r.saving)}` : "Normal ticket",
+      sub: r.best_overall === "hidden" ? `Hidden city · save ${rupees(r.saving)}`
+        : r.hidden_checked ? "Normal ticket" : "Hidden-city not checked yet",
     },
     {
       id: "normal",
@@ -232,7 +254,7 @@ function drawTabs() {
       id: "hidden",
       label: "Hidden-city",
       price: r.best_hidden ? rupees(r.best_hidden.price) : "–",
-      sub: `${r.hidden.length} options`,
+      sub: r.hidden_checked ? `${r.hidden.length} options` : "Not checked yet",
     },
   ];
 
@@ -275,7 +297,9 @@ function drawList() {
 
   if (tickets.length === 0) {
     const message = activeTab === "hidden"
-      ? "No hidden-city tickets found for this trip. Normal tickets are your best bet."
+      ? (r.hidden_checked
+        ? "No hidden-city tickets found for this trip. Normal tickets are your best bet."
+        : "Hidden-city fares haven't been checked yet. Use the button above.")
       : "No flights found for this trip.";
     list.innerHTML = `<div class="empty">${message}</div>`;
     return;

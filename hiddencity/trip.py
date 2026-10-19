@@ -83,18 +83,29 @@ def compare(normal, hidden):
     }
 
 
+def cities_to_search(origin, destination, include_hidden=True, max_beyond=None):
+    """The destination, plus (for hidden-city fares) the cities beyond it."""
+    if max_beyond is None:
+        max_beyond = default_beyond_limit(destination)
+    cities = [destination]
+    if include_hidden:
+        cities += choose_beyond_cities(origin, destination, max_beyond)
+    return cities
+
+
+def live_searches_needed(origin, destination, date, include_hidden=True, max_beyond=None):
+    """How many paid searches this trip search would cost right now."""
+    cities = cities_to_search(origin, destination, include_hidden, max_beyond)
+    return sum(1 for c in cities if not client.fresh_copy(origin, c, date, live=True))
+
+
 def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyond=None):
     """Run the whole trip search. Returns a dict ready to show on the page.
 
     Prices are kept current: saved answers older than LIVE_MAX_AGE_HOURS are
     searched again.
     """
-    if max_beyond is None:
-        max_beyond = default_beyond_limit(destination)
-
-    cities = [destination]
-    if include_hidden:
-        cities += choose_beyond_cities(origin, destination, max_beyond)
+    cities = cities_to_search(origin, destination, include_hidden, max_beyond)
 
     already_cached = [c for c in cities if client.fresh_copy(origin, c, date, live=True)]
 
@@ -133,6 +144,7 @@ def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyon
         "cached_searches": len(already_cached),
         "problems": problems,
         "prices_age_minutes": round(max(ages) * 60) if ages else None,
+        "hidden_checked": include_hidden,
         "normal": normal,
         "hidden": hidden,
         **compare(normal, hidden),

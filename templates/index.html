@@ -56,13 +56,6 @@
           </div>
           <button type="submit" class="go">Search</button>
         </div>
-
-        <div class="options">
-          <label class="check">
-            <input id="include-hidden" type="checkbox" checked>
-            <span>Include hidden-city fares</span>
-          </label>
-        </div>
       </form>
     </div>
   </header>
@@ -73,6 +66,13 @@
       <div id="results" hidden>
         <div id="route-title" class="route-title"></div>
         <div id="meta" class="meta"></div>
+        <div id="hidden-cta" class="cta" hidden>
+          <div>
+            <strong>Is a longer ticket cheaper?</strong>
+            <span id="hidden-cta-text"></span>
+          </div>
+          <button type="button" id="hidden-go" class="cta-button">Find hidden-city deals</button>
+        </div>
         <div id="sort-tabs" class="sort-tabs" role="tablist"></div>
         <div id="warning" class="warning" hidden>
           <strong>Before you book a hidden-city ticket:</strong>
@@ -117,7 +117,10 @@
     </div>
   </footer>
 
-  <script>window.AIRPORTS = {{ airports|tojson }};</script>
+  <script>
+    window.AIRPORTS = {{ airports|tojson }};
+    window.SEARCH_URL = {{ url_for('site.search')|tojson }};
+  </script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

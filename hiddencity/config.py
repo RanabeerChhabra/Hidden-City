@@ -1,11 +1,17 @@
 """Settings for the whole project: where we fly from, where to, and where files go."""
 
+import os
 from pathlib import Path
 
 # The project folder (one level above this file).
 ROOT = Path(__file__).resolve().parent.parent
 
-CACHE_DIR = ROOT / "cache"  # raw SerpApi answers, one JSON file per search
+# Raw SerpApi answers, one JSON file per search. On Vercel the project folder is
+# read-only, so answers go to /tmp there (and last only as long as the server).
+if os.environ.get("VERCEL"):
+    CACHE_DIR = Path("/tmp/hiddencity-cache")
+else:
+    CACHE_DIR = ROOT / "cache"
 SEARCH_LOG = CACHE_DIR / "search_log.jsonl"  # one line per search we paid for
 DATA_DIR = ROOT / "data"  # cleaned results (SQLite database and CSV files)
 
@@ -69,6 +75,12 @@ MAX_BEYOND_SEARCHES_SMALL_AIRPORT = 2
 # The website re-searches saved answers older than this, so prices stay current.
 # (The research scan never expires: it's a snapshot on purpose.)
 LIVE_MAX_AGE_HOURS = 6
+
+# Protecting the monthly budget once the site is public:
+# each visitor can trigger at most this many paid searches a day...
+VISITOR_DAILY_SEARCHES = 15
+# ...and the site stops making new searches when the account gets this low.
+BUDGET_RESERVE = 10
 
 # SerpApi's free plan allows 50 searches an hour. The research scan stops at 45,
 # which keeps the last 5 free for people searching on the website.

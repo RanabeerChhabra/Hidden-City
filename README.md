@@ -14,10 +14,16 @@ This is an **analysis tool, not a booking tool**.
 
 Search any route between **88 Indian airports** on any future date. For example, **Delhi → Mumbai on 18 Nov** shows the best normal ticket next to the best hidden-city ticket (a longer ticket that stops in Mumbai first).
 
+Live at **[rana.beer/hiddencity](https://rana.beer/hiddencity)**. To run it locally:
+
 ```bash
-python app.py          # then open http://localhost:5050
+python app.py          # then open http://localhost:5050/hiddencity/
 python -m hiddencity find DEL BOM 2026-11-18     # the same search in the terminal
 ```
+
+A search first shows normal fares (1 API search). Hidden-city fares are checked only when you press **Find hidden-city deals**, which keeps the free API plan going further. Each visitor can trigger at most 15 paid searches a day, and the site stops making new searches when the monthly balance runs low.
+
+**Deploying:** the app runs on [Vercel](https://vercel.com) as a Flask function (`app.py`, settings in `vercel.json`). Static files live in `public/` so Vercel's CDN serves them. Set `SERPAPI_KEY` in the Vercel project's environment variables.
 
 A trip search runs 1 search for the trip itself, plus searches to cities *beyond* the destination (6 for big hubs, 2 for smaller airports, since few people connect through them). Cities are picked from ones the cache has already seen routing through the destination, then by geography: a city counts as "beyond" if the destination is roughly on the way there ([`airports.py`](hiddencity/airports.py)). Saved answers are reused for 6 hours, then searched again so prices stay current; the page shows how old the prices are. Website searches are saved in `cache/live/`, separate from the research snapshot, and the scan leaves 5 of SerpApi's 50 searches an hour free for the website.
 
@@ -38,7 +44,7 @@ git clone https://github.com/RanabeerChhabra/Hidden-City.git
 cd Hidden-City
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 cp .env.example .env        # then put your SerpApi key in .env
 ```
 
