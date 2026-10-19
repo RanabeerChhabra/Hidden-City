@@ -178,8 +178,8 @@ def main():
     find.add_argument("destination", help="airport code, e.g. BOM")
     find.add_argument("date", help="YYYY-MM-DD")
     find.add_argument(
-        "--max-searches", type=int, default=config.MAX_BEYOND_SEARCHES,
-        help="cities beyond the destination to check",
+        "--max-searches", type=int,
+        help="cities beyond the destination to check (default: 6 for hubs, 2 otherwise)",
     )
 
     args = parser.parse_args()

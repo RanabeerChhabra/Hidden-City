@@ -12,14 +12,14 @@ This is an **analysis tool, not a booking tool**.
 
 ## Trip search (web app)
 
-Type a trip, for example **Delhi → Mumbai on 18 Nov**, and it shows the best normal ticket next to the best hidden-city ticket (a longer ticket that stops in Mumbai first).
+Search any route between **88 Indian airports** on any future date. For example, **Delhi → Mumbai on 18 Nov** shows the best normal ticket next to the best hidden-city ticket (a longer ticket that stops in Mumbai first).
 
 ```bash
 python app.py          # then open http://localhost:5050
 python -m hiddencity find DEL BOM 2026-11-18     # the same search in the terminal
 ```
 
-A trip search runs 1 search for the trip itself plus up to 6 for cities beyond it, chosen from cities the scan has already seen routing through your destination. Searches that are already cached are free, so trips from Delhi on scanned dates cost nothing.
+A trip search runs 1 search for the trip itself, plus searches to cities *beyond* the destination (6 for big hubs, 2 for smaller airports, since few people connect through them). Cities are picked from ones the cache has already seen routing through the destination, then by geography: a city counts as "beyond" if the destination is roughly on the way there ([`airports.py`](hiddencity/airports.py)). Cached searches are free, so trips from Delhi on scanned dates cost nothing.
 
 ## How the research scan works
 

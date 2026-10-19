@@ -60,16 +60,11 @@ DESTINATIONS = {
     "STV": "Surat",
 }
 
-# Every airport the trip search knows about (used for the From/To boxes).
-AIRPORTS = {ORIGIN: "Delhi", **DESTINATIONS}
-
 # For a trip search, how many cities beyond the destination to search for
 # hidden-city tickets. Each one costs a search unless it's already cached.
+# Small airports rarely have connections through them, so we try fewer.
 MAX_BEYOND_SEARCHES = 6
-
-# If the cache can't tell us which cities route through a hub, try the
-# biggest airports first: they have the most connections.
-BIG_AIRPORTS = ["BOM", "BLR", "HYD", "MAA", "CCU", "DEL", "GOI", "COK", "AMD", "PNQ", "GAU", "TRV"]
+MAX_BEYOND_SEARCHES_SMALL_AIRPORT = 2
 
 # SerpApi's free plan allows 50 searches an hour. We stop a little below that.
 HOURLY_LIMIT = 45

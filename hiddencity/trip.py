@@ -10,14 +10,15 @@ How:
 
 from concurrent.futures import ThreadPoolExecutor
 
-from hiddencity import client, config, parse
+from hiddencity import airports, client, config, parse
 
 
 def choose_beyond_cities(origin, destination, limit):
     """Pick the cities most likely to have connections through `destination`.
 
-    First, cities where our cache has already seen a ticket stopping at the
-    destination (ranked by how often). Then big airports, to fill the list.
+    First, cities where our cache has already seen a ticket from this origin
+    stopping at the destination (most often first). Then cities that lie
+    geographically beyond the destination.
     """
     seen_count = {}
     for city, date in client.cached_searches(origin):
@@ -29,15 +30,18 @@ def choose_beyond_cities(origin, destination, limit):
                 seen_count[city] = seen_count.get(city, 0) + 1
 
     ranked = sorted(seen_count, key=seen_count.get, reverse=True)
-    for city in config.BIG_AIRPORTS:
+    for city in airports.beyond(origin, destination):
         if city not in ranked:
             ranked.append(city)
 
-    chosen = []
-    for city in ranked:
-        if city not in (origin, destination) and city in config.AIRPORTS:
-            chosen.append(city)
+    chosen = [c for c in ranked if c not in (origin, destination) and c in airports.AIRPORTS]
     return chosen[:limit]
+
+
+def default_beyond_limit(destination):
+    if destination in airports.HUBS:
+        return config.MAX_BEYOND_SEARCHES
+    return config.MAX_BEYOND_SEARCHES_SMALL_AIRPORT
 
 
 def split_tickets(rows, destination):
@@ -82,7 +86,7 @@ def compare(normal, hidden):
 def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyond=None):
     """Run the whole trip search. Returns a dict ready to show on the page."""
     if max_beyond is None:
-        max_beyond = config.MAX_BEYOND_SEARCHES
+        max_beyond = default_beyond_limit(destination)
 
     cities = [destination]
     if include_hidden:

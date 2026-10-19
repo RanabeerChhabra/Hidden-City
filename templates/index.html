@@ -3,37 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HiddenCity · Flight search</title>
+  <title>Hidden City · Flight search</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
       <nav class="topbar">
-        <a class="logo" href="/">
-          <svg viewBox="0 0 32 32" aria-hidden="true">
-            <path d="M3 22c6-1 10-4 13-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 4.2"/>
-            <path d="M16 13c3-5 7-7 13-8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            <circle cx="16" cy="13" r="3.4" fill="#00a698"/>
-          </svg>
-          HiddenCity
+        <a class="logo" href="/" aria-label="Hidden City home">
+          <img src="{{ url_for('static', filename='logo-mark-light.png') }}" alt="" width="64" height="40">
+          <span class="wordmark">HIDDEN CITY</span>
         </a>
         <div class="topbar-right">
           <a href="#how" class="toplink">How it works</a>
-          <span class="locale">English · India · ₹ INR</span>
+          <span class="locale">India · ₹ INR</span>
         </div>
       </nav>
 
-      <div class="tabs">
-        <span class="tab active">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" fill="currentColor"/></svg>
-          Flights
-        </span>
-      </div>
-
-      <h1>Cheaper flights hiding in plain sight.</h1>
+      <h1>The cheaper flight is <em>sometimes the longer one.</em></h1>
+      <p class="lede">Search any route between {{ airports|length }} Indian airports. We check normal fares and the connecting tickets that stop at your city first.</p>
 
       <form id="search" class="search" autocomplete="off">
         <div class="pills">
@@ -42,17 +33,19 @@
         </div>
 
         <div class="bar">
-          <label class="field from">
-            <span class="field-label">From</span>
-            <input id="origin" list="airports" value="DEL" required placeholder="City or airport">
-          </label>
+          <div class="field from">
+            <label class="field-label" for="origin">From</label>
+            <input id="origin" class="airport-input" data-code="DEL" value="Delhi (DEL)" placeholder="City or airport" role="combobox" aria-expanded="false" aria-controls="origin-list" required>
+            <ul id="origin-list" class="suggestions" role="listbox" hidden></ul>
+          </div>
           <button type="button" id="swap" class="swap" aria-label="Swap From and To">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12m0 0-3.5-3.5M19 7l-3.5 3.5M17 17H5m0 0 3.5 3.5M5 17l3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <label class="field to">
-            <span class="field-label">To</span>
-            <input id="destination" list="airports" value="BOM" required placeholder="City or airport">
-          </label>
+          <div class="field to">
+            <label class="field-label" for="destination">To</label>
+            <input id="destination" class="airport-input" data-code="BOM" value="Mumbai (BOM)" placeholder="City or airport" role="combobox" aria-expanded="false" aria-controls="destination-list" required>
+            <ul id="destination-list" class="suggestions" role="listbox" hidden></ul>
+          </div>
           <label class="field depart">
             <span class="field-label">Depart</span>
             <input id="date" type="date" value="{{ default_date }}" min="{{ today }}" required>
@@ -70,12 +63,6 @@
             <span>Include hidden-city fares</span>
           </label>
         </div>
-
-        <datalist id="airports">
-          {% for code, name in airports %}
-          <option value="{{ code }}">{{ name }} ({{ code }})</option>
-          {% endfor %}
-        </datalist>
       </form>
     </div>
   </header>
@@ -101,12 +88,12 @@
           <div class="how-card">
             <span class="how-num">1</span>
             <h3>Search your route</h3>
-            <p>We check every normal ticket from your city to your destination.</p>
+            <p>We check every normal ticket from your city to your destination, on the day you pick.</p>
           </div>
           <div class="how-card">
             <span class="how-num">2</span>
             <h3>Look beyond it</h3>
-            <p>We also search a few cities further on, and keep tickets that stop at your destination first.</p>
+            <p>We also search cities further on, and keep tickets whose first stop is your destination.</p>
           </div>
           <div class="how-card">
             <span class="how-num">3</span>
@@ -115,13 +102,22 @@
           </div>
         </div>
         <p class="fineprint">
-          Prices come from Google Flights via SerpApi and are a snapshot. This is a research project:
+          Prices come from Google Flights via SerpApi and are a snapshot. Hidden City is a research project:
           we don't sell tickets. "View deal" opens the search on Google Flights.
+          {% if searches_left is not none %}Searches left this month: <strong>{{ searches_left }}</strong>.{% endif %}
         </p>
       </section>
     </div>
   </main>
 
+  <footer class="footer">
+    <div class="wrap">
+      <img src="{{ url_for('static', filename='logo-mark-light.png') }}" alt="" width="48" height="30">
+      <span class="wordmark small">HIDDEN CITY</span>
+    </div>
+  </footer>
+
+  <script>window.AIRPORTS = {{ airports|tojson }};</script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

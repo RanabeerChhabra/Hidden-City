@@ -10,25 +10,127 @@ const warning = document.getElementById("warning");
 let lastResult = null;
 let activeTab = "best";
 
+// ---------- Airport boxes: type a city or code, pick from the list ----------
+
+function label(airport) {
+  return `${airport.city} (${airport.code})`;
+}
+
+function matches(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return window.AIRPORTS.slice(0, 8);
+  const starts = [];
+  const contains = [];
+  for (const a of window.AIRPORTS) {
+    const city = a.city.toLowerCase();
+    const code = a.code.toLowerCase();
+    if (code === q || city.startsWith(q)) starts.push(a);
+    else if (code.startsWith(q) || city.includes(q)) contains.push(a);
+  }
+  return [...starts, ...contains].slice(0, 8);
+}
+
+function setupAirportBox(input) {
+  const list = document.getElementById(input.getAttribute("aria-controls"));
+  let options = [];
+  let highlighted = 0;
+
+  function choose(airport) {
+    input.value = label(airport);
+    input.dataset.code = airport.code;
+    close();
+  }
+
+  function close() {
+    list.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+  }
+
+  function draw() {
+    list.innerHTML = "";
+    options.forEach((airport, i) => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", i === highlighted ? "true" : "false");
+      li.innerHTML = `<span>${escapeHtml(airport.city)}</span><span class="code">${airport.code}</span>`;
+      // mousedown, not click: it fires before the input loses focus.
+      li.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        choose(airport);
+      });
+      list.appendChild(li);
+    });
+    list.hidden = options.length === 0;
+    input.setAttribute("aria-expanded", String(!list.hidden));
+  }
+
+  function open(query) {
+    options = matches(query);
+    highlighted = 0;
+    draw();
+  }
+
+  input.addEventListener("focus", () => {
+    input.select();
+    open("");
+  });
+  input.addEventListener("input", () => {
+    input.dataset.code = "";
+    open(input.value);
+  });
+  input.addEventListener("keydown", (event) => {
+    if (list.hidden) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      highlighted = (highlighted + step + options.length) % options.length;
+      draw();
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      if (options[highlighted]) choose(options[highlighted]);
+    } else if (event.key === "Escape") {
+      close();
+    }
+  });
+  input.addEventListener("blur", () => {
+    // Typed something but didn't pick? Use the best match, if there is one.
+    if (!input.dataset.code) {
+      const best = matches(input.value)[0];
+      if (best && input.value.trim()) choose(best);
+    }
+    close();
+  });
+}
+
+const originInput = document.getElementById("origin");
+const destinationInput = document.getElementById("destination");
+setupAirportBox(originInput);
+setupAirportBox(destinationInput);
+
 document.getElementById("swap").addEventListener("click", () => {
-  const origin = document.getElementById("origin");
-  const destination = document.getElementById("destination");
-  [origin.value, destination.value] = [destination.value, origin.value];
+  [originInput.value, destinationInput.value] = [destinationInput.value, originInput.value];
+  [originInput.dataset.code, destinationInput.dataset.code] =
+    [destinationInput.dataset.code, originInput.dataset.code];
 });
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const body = {
-    origin: document.getElementById("origin").value.trim().toUpperCase(),
-    destination: document.getElementById("destination").value.trim().toUpperCase(),
+    origin: originInput.dataset.code,
+    destination: destinationInput.dataset.code,
     date: document.getElementById("date").value,
     include_hidden: document.getElementById("include-hidden").checked,
   };
 
+  if (!body.origin || !body.destination) {
+    showStatus("Pick both airports from the list.", true);
+    return;
+  }
+
   const button = form.querySelector(".go");
   button.disabled = true;
   results.hidden = true;
-  showStatus(`<span class="spinner"></span>Searching ${body.origin} → ${body.destination} and the cities beyond it…`);
+  showStatus(`<span class="spinner"></span>Searching ${body.origin} → ${body.destination} and the cities beyond it. New routes take a few seconds…`);
 
   try {
     const response = await fetch("/api/search", {
@@ -90,6 +192,7 @@ function render() {
   let meta = `${dateText} · ${r.cities_searched.length} routes checked ` +
     `(${r.cached_searches} saved, ${r.live_searches} live)`;
   if (r.problems.length) meta += ` · ${r.problems.length} couldn't be searched right now`;
+  if (r.searches_left != null) meta += ` · ${r.searches_left} searches left this month`;
   document.getElementById("meta").textContent = meta;
 
   drawTabs();

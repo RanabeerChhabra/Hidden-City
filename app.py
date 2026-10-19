@@ -5,12 +5,14 @@ Run it with:  python app.py   then open http://localhost:5050
 
 from datetime import date
 
+import requests
 from flask import Flask, jsonify, render_template, request
 
-from hiddencity import client, config, trip
+from hiddencity import airports, client, config, trip
 
 app = Flask(__name__)
 API_KEY = client.get_api_key()
+CITY_NAMES = {code: info[0] for code, info in airports.AIRPORTS.items()}
 
 
 def suggested_date():
@@ -20,14 +22,23 @@ def suggested_date():
     return dates[0] if dates else today
 
 
+def searches_left():
+    try:
+        return client.account_status(API_KEY).get("total_searches_left")
+    except requests.RequestException:
+        return None
+
+
 @app.get("/")
 def home():
-    airports = sorted(config.AIRPORTS.items(), key=lambda item: item[1])
+    airport_list = [{"code": code, "city": name} for code, name in CITY_NAMES.items()]
+    airport_list.sort(key=lambda a: a["city"])
     return render_template(
         "index.html",
-        airports=airports,
+        airports=airport_list,
         default_date=suggested_date(),
         today=date.today().isoformat(),
+        searches_left=searches_left(),
     )
 
 
@@ -39,7 +50,7 @@ def search():
     when = str(body.get("date", "")).strip()
     include_hidden = bool(body.get("include_hidden", True))
 
-    if origin not in config.AIRPORTS or destination not in config.AIRPORTS:
+    if origin not in CITY_NAMES or destination not in CITY_NAMES:
         return jsonify(error="Pick airports from the list."), 400
     if origin == destination:
         return jsonify(error="From and To can't be the same airport."), 400
@@ -50,7 +61,8 @@ def search():
         return jsonify(error="Pick a date."), 400
 
     result = trip.find_trip(origin, destination, when, API_KEY, include_hidden=include_hidden)
-    result["airport_names"] = config.AIRPORTS
+    result["airport_names"] = CITY_NAMES
+    result["searches_left"] = searches_left()
     return jsonify(result)
 
 

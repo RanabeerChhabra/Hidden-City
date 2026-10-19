@@ -2,15 +2,16 @@ import os
 
 os.environ.setdefault("SERPAPI_KEY", "test-key")  # app.py reads the key when imported
 
-from app import app  # noqa: E402
+import app as webapp  # noqa: E402
 
-client = app.test_client()
+webapp.searches_left = lambda: None  # don't call SerpApi during tests
+client = webapp.app.test_client()
 
 
 def test_home_page_loads():
     response = client.get("/")
     assert response.status_code == 200
-    assert b"HiddenCity" in response.data
+    assert b"HIDDEN CITY" in response.data
 
 
 def test_rejects_same_airport():
