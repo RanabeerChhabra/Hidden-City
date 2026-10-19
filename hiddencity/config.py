@@ -66,8 +66,14 @@ DESTINATIONS = {
 MAX_BEYOND_SEARCHES = 6
 MAX_BEYOND_SEARCHES_SMALL_AIRPORT = 2
 
-# SerpApi's free plan allows 50 searches an hour. We stop a little below that.
+# The website re-searches saved answers older than this, so prices stay current.
+# (The research scan never expires: it's a snapshot on purpose.)
+LIVE_MAX_AGE_HOURS = 6
+
+# SerpApi's free plan allows 50 searches an hour. The research scan stops at 45,
+# which keeps the last 5 free for people searching on the website.
 HOURLY_LIMIT = 45
+LIVE_HOURLY_LIMIT = 50
 
 # Seconds to wait between searches, to be polite to the API.
 PAUSE_BETWEEN_SEARCHES = 1

@@ -6,6 +6,7 @@ so we never pay twice for the same search and always know how many we've used.
 
 import json
 import os
+import time
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -37,8 +38,14 @@ def get_api_key():
     return key
 
 
-def cache_path(origin, destination, date):
-    return config.CACHE_DIR / f"{origin}-{destination}-{date}.json"
+def cache_path(origin, destination, date, folder=None):
+    folder = folder or config.CACHE_DIR
+    return folder / f"{origin}-{destination}-{date}.json"
+
+
+def live_folder():
+    """Where website searches are saved, apart from the research snapshot."""
+    return config.CACHE_DIR / "live"
 
 
 def is_cached(origin, destination, date):
@@ -51,6 +58,28 @@ def load_cached(origin, destination, date):
         return None
     with open(path) as f:
         return json.load(f)
+
+
+def age_hours(path):
+    return (time.time() - path.stat().st_mtime) / 3600
+
+
+def fresh_copy(origin, destination, date, live):
+    """Path to a saved answer we're allowed to reuse, or None.
+
+    Research (live=False): any saved answer, however old. The scan is a snapshot.
+    Website (live=True): only answers younger than LIVE_MAX_AGE_HOURS, because
+    people expect today's prices. Checks the website's own folder and the
+    research cache, so a scan from this morning still saves searches.
+    """
+    if not live:
+        path = cache_path(origin, destination, date)
+        return path if path.exists() else None
+    for folder in (live_folder(), config.CACHE_DIR):
+        path = cache_path(origin, destination, date, folder)
+        if path.exists() and age_hours(path) < config.LIVE_MAX_AGE_HOURS:
+            return path
+    return None
 
 
 def log_search(origin, destination, date, status):
@@ -85,14 +114,20 @@ def hide_key(text, api_key):
     return text.replace(api_key, "***")
 
 
-def fetch_flights(origin, destination, date, api_key):
-    """Return SerpApi's answer for a one-way search. Uses the cache when it can."""
-    cached = load_cached(origin, destination, date)
-    if cached is not None:
-        return cached
+def fetch_flights(origin, destination, date, api_key, live=False):
+    """Return SerpApi's answer for a one-way search. Uses a saved answer when it can.
 
-    if searches_in_last_hour() >= config.HOURLY_LIMIT:
-        raise HourlyLimitReached(f"{config.HOURLY_LIMIT} searches used in the last hour.")
+    live=True is for the website: old answers are searched again, and new ones are
+    saved in cache/live/ so the research snapshot is never overwritten.
+    """
+    saved = fresh_copy(origin, destination, date, live)
+    if saved is not None:
+        with open(saved) as f:
+            return json.load(f)
+
+    limit = config.LIVE_HOURLY_LIMIT if live else config.HOURLY_LIMIT
+    if searches_in_last_hour() >= limit:
+        raise HourlyLimitReached(f"{limit} searches used in the last hour.")
 
     params = {
         "engine": "google_flights",
@@ -117,8 +152,9 @@ def fetch_flights(origin, destination, date, api_key):
         log_search(origin, destination, date, "error")
         raise SearchError(error)
 
-    config.CACHE_DIR.mkdir(exist_ok=True)
-    with open(cache_path(origin, destination, date), "w") as f:
+    folder = live_folder() if live else config.CACHE_DIR
+    folder.mkdir(parents=True, exist_ok=True)
+    with open(cache_path(origin, destination, date, folder), "w") as f:
         json.dump(data, f, indent=2)
     log_search(origin, destination, date, "ok")
     return data

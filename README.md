@@ -19,7 +19,7 @@ python app.py          # then open http://localhost:5050
 python -m hiddencity find DEL BOM 2026-11-18     # the same search in the terminal
 ```
 
-A trip search runs 1 search for the trip itself, plus searches to cities *beyond* the destination (6 for big hubs, 2 for smaller airports, since few people connect through them). Cities are picked from ones the cache has already seen routing through the destination, then by geography: a city counts as "beyond" if the destination is roughly on the way there ([`airports.py`](hiddencity/airports.py)). Cached searches are free, so trips from Delhi on scanned dates cost nothing.
+A trip search runs 1 search for the trip itself, plus searches to cities *beyond* the destination (6 for big hubs, 2 for smaller airports, since few people connect through them). Cities are picked from ones the cache has already seen routing through the destination, then by geography: a city counts as "beyond" if the destination is roughly on the way there ([`airports.py`](hiddencity/airports.py)). Saved answers are reused for 6 hours, then searched again so prices stay current; the page shows how old the prices are. Website searches are saved in `cache/live/`, separate from the research snapshot, and the scan leaves 5 of SerpApi's 50 searches an hour free for the website.
 
 ## How the research scan works
 

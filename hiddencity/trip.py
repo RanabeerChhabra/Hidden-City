@@ -84,7 +84,11 @@ def compare(normal, hidden):
 
 
 def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyond=None):
-    """Run the whole trip search. Returns a dict ready to show on the page."""
+    """Run the whole trip search. Returns a dict ready to show on the page.
+
+    Prices are kept current: saved answers older than LIVE_MAX_AGE_HOURS are
+    searched again.
+    """
     if max_beyond is None:
         max_beyond = default_beyond_limit(destination)
 
@@ -92,11 +96,11 @@ def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyon
     if include_hidden:
         cities += choose_beyond_cities(origin, destination, max_beyond)
 
-    already_cached = [c for c in cities if client.is_cached(origin, c, date)]
+    already_cached = [c for c in cities if client.fresh_copy(origin, c, date, live=True)]
 
     def fetch(city):
         try:
-            return city, client.fetch_flights(origin, city, date, api_key), None
+            return city, client.fetch_flights(origin, city, date, api_key, live=True), None
         except (client.SearchError, client.HourlyLimitReached) as e:
             return city, None, str(e)
 
@@ -112,6 +116,13 @@ def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyon
         else:
             rows.extend(parse.parse_itineraries(data, city, date))
 
+    # How old is the oldest price we're showing? (0 for brand-new searches.)
+    ages = []
+    for city in cities:
+        path = client.fresh_copy(origin, city, date, live=True)
+        if path:
+            ages.append(client.age_hours(path))
+
     normal, hidden = split_tickets(rows, destination)
     return {
         "origin": origin,
@@ -121,6 +132,7 @@ def find_trip(origin, destination, date, api_key, include_hidden=True, max_beyon
         "live_searches": len(cities) - len(already_cached) - len(problems),
         "cached_searches": len(already_cached),
         "problems": problems,
+        "prices_age_minutes": round(max(ages) * 60) if ages else None,
         "normal": normal,
         "hidden": hidden,
         **compare(normal, hidden),

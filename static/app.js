@@ -191,6 +191,12 @@ function render() {
   });
   let meta = `${dateText} · ${r.cities_searched.length} routes checked ` +
     `(${r.cached_searches} saved, ${r.live_searches} live)`;
+  if (r.prices_age_minutes != null) {
+    const m = r.prices_age_minutes;
+    meta += m < 2 ? " · prices checked just now"
+      : m < 60 ? ` · prices checked ${m} min ago`
+      : ` · prices checked ${Math.round(m / 60)} h ago`;
+  }
   if (r.problems.length) meta += ` · ${r.problems.length} couldn't be searched right now`;
   if (r.searches_left != null) meta += ` · ${r.searches_left} searches left this month`;
   document.getElementById("meta").textContent = meta;
