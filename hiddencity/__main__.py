@@ -4,6 +4,7 @@
     python -m hiddencity scan --dates 2026-11-18     # spend searches, fill the cache
     python -m hiddencity report                      # analyse everything in the cache
     python -m hiddencity find DEL BOM 2026-11-18     # best normal vs hidden-city ticket
+    python -m hiddencity charts                      # README charts from the cache
 """
 
 import argparse
@@ -158,6 +159,15 @@ def cmd_find(args):
         print("The normal ticket is the better deal.")
 
 
+def cmd_charts(args):
+    from hiddencity import charts  # matplotlib is only needed here
+
+    rows = load_all_rows()
+    opportunities = detect.find_hidden_city(rows)
+    for path in charts.make_all(rows, opportunities):
+        print("Saved", path.relative_to(config.ROOT))
+
+
 def main():
     parser = argparse.ArgumentParser(prog="hiddencity", description="Hidden-city fare analysis.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -182,6 +192,8 @@ def main():
         help="cities beyond the destination to check (default: 6 for hubs, 2 otherwise)",
     )
 
+    commands.add_parser("charts", help="draw the README charts from the cache")
+
     args = parser.parse_args()
     if args.command == "budget":
         cmd_budget(args)
@@ -191,6 +203,8 @@ def main():
         cmd_report(args)
     elif args.command == "find":
         cmd_find(args)
+    elif args.command == "charts":
+        cmd_charts(args)
 
 
 if __name__ == "__main__":

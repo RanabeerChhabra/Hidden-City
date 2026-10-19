@@ -8,7 +8,25 @@ This is an **analysis tool, not a booking tool**.
 
 ## Findings
 
-*Scan in progress. Results and charts will go here.*
+I searched one-way fares from **Delhi to 41 Indian cities on 5 travel dates** (Tue 27 Oct, Sat 14 Nov, Wed 18 Nov, Fri 27 Nov, Sun 6 Dec 2026): **205 searches and 1,935 itineraries**, captured on 18–19 October 2026.
+
+**Hidden-city fares exist, but they're the exception.**
+
+- **19 of 195 routes (9.7%)** had a connecting ticket cheaper than the cheapest direct flight to its stopover city. A "route" here is Delhi → a city, on one date.
+- Counting only routes where a connection through that city was on sale at all, it's **19 of 110 (17%)**. On a typical route, the cheapest such connection cost **23% more** than flying direct.
+- When there was a saving, the best one averaged **₹676**, and the biggest was **₹1,816** (Delhi → Pune on 14 Nov, on a ticket booked to Goa).
+- **The same plane, sold for less.** In 14 cases Google also listed the first flight as a ticket on its own, and every one of those 14 cost more alone than as part of the longer trip. Example: SpiceJet SG 160 Delhi → Jammu costs ₹7,106 alone, but ₹6,306 as Delhi → Jammu → Srinagar on the same plane.
+- **Jammu is the standout.** It had a saving on **all 5 dates**: 13 of the 32 cheaper tickets, mostly through-flights that continue to Srinagar or Leh.
+- **IndiGo accounts for 28 of the 32 cheaper tickets** (SpiceJet the other 4), even though Air India had the most itineraries overall.
+- **The date matters less than the route.** 8–13% of routes had a saving on every date.
+
+![Share of routes with a hidden-city saving by date](docs/charts/savings_by_date.png)
+
+![Cheapest hidden-city ticket as a percentage of the direct fare](docs/charts/how_close_connections_get.png)
+
+![Biggest saving at each stopover city](docs/charts/best_saving_by_city.png)
+
+The full data is reproducible from the cache: `python -m hiddencity report` writes `data/results.db` and CSVs, and `python -m hiddencity charts` redraws these charts.
 
 ## Trip search (web app)
 
@@ -65,4 +83,6 @@ python -m pytest                                            # run the tests
 - **Airlines prohibit it.** Contracts of carriage forbid deliberately skipping segments. Airlines can cancel tickets, charge the fare difference, or penalise frequent-flyer accounts.
 - **Disruption risk.** If the first leg is cancelled, the airline may rebook you through a different hub.
 - **Coverage.** Google Flights doesn't show every fare or every airline on every search, and results are a snapshot of the dates searched.
-- **Delhi only.** Every route starts at DEL.
+- **Delhi only** for the research scan. Every route starts at DEL; the trip search covers any of 88 airports.
+- **Small sample.** 5 dates and one snapshot (prices captured 18–19 Oct 2026). Fares change daily, so these are indicative rates, not a forecast.
+- **Same airport only.** A connection through Navi Mumbai isn't counted as a Mumbai saving.
