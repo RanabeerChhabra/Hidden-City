@@ -10,7 +10,18 @@ This is an **analysis tool, not a booking tool**.
 
 *Scan in progress. Results and charts will go here.*
 
-## How it works
+## Trip search (web app)
+
+Type a trip, for example **Delhi → Mumbai on 18 Nov**, and it shows the best normal ticket next to the best hidden-city ticket (a longer ticket that stops in Mumbai first).
+
+```bash
+python app.py          # then open http://localhost:5050
+python -m hiddencity find DEL BOM 2026-11-18     # the same search in the terminal
+```
+
+A trip search runs 1 search for the trip itself plus up to 6 for cities beyond it, chosen from cities the scan has already seen routing through your destination. Searches that are already cached are free, so trips from Delhi on scanned dates cost nothing.
+
+## How the research scan works
 
 1. **Search.** For each city in [`hiddencity/config.py`](hiddencity/config.py), search one-way DEL → city on Google Flights (via [SerpApi](https://serpapi.com/google-flights-api)).
 2. **Flatten.** Each result is an itinerary with one or more legs. The first leg's arrival airport is where a hidden-city traveller would get off. ([`parse.py`](hiddencity/parse.py))

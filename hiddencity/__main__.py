@@ -3,12 +3,13 @@
     python -m hiddencity budget                      # searches left, free to run
     python -m hiddencity scan --dates 2026-11-18     # spend searches, fill the cache
     python -m hiddencity report                      # analyse everything in the cache
+    python -m hiddencity find DEL BOM 2026-11-18     # best normal vs hidden-city ticket
 """
 
 import argparse
 import time
 
-from hiddencity import client, config, detect, parse, storage
+from hiddencity import client, config, detect, parse, storage, trip
 
 
 def cmd_budget(args):
@@ -118,6 +119,45 @@ def cmd_report(args):
     print(f"Saved to {storage.DB_PATH.relative_to(config.ROOT)} and data/*.csv")
 
 
+def describe(ticket):
+    route = ticket["origin"] + " -> " + ticket["first_stop"]
+    if ticket["final_destination"] != ticket["first_stop"]:
+        route += " -> " + ticket["final_destination"]
+    return (
+        f"Rs {ticket['price']}  {ticket['all_airlines']} {ticket['flight_numbers']}"
+        f"  {route}  departs {ticket['departure_time']}"
+    )
+
+
+def cmd_find(args):
+    api_key = client.get_api_key()
+    origin, destination = args.origin.upper(), args.destination.upper()
+    result = trip.find_trip(origin, destination, args.date, api_key, max_beyond=args.max_searches)
+
+    print(f"{origin} -> {destination} on {args.date}")
+    print(
+        f"Searched {len(result['cities_searched'])} routes: "
+        f"{result['cached_searches']} from cache, {result['live_searches']} live."
+    )
+    for problem in result["problems"]:
+        print("  Skipped", problem)
+    print()
+    if result["best_normal"]:
+        print("Best normal ticket:      ", describe(result["best_normal"]))
+    else:
+        print("No normal tickets found.")
+    if result["best_hidden"]:
+        print("Best hidden-city ticket: ", describe(result["best_hidden"]))
+        print(f"                          (get off at {destination}, cabin bag only)")
+    else:
+        print("No hidden-city tickets found.")
+    print()
+    if result["saving"]:
+        print(f"Hidden-city saves Rs {result['saving']} ({result['saving_pct']}%).")
+    elif result["best_overall"] == "normal":
+        print("The normal ticket is the better deal.")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="hiddencity", description="Hidden-city fare analysis.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -133,6 +173,15 @@ def main():
     report = commands.add_parser("report", help="find hidden-city fares in the cache")
     report.add_argument("--top", type=int, default=15, help="how many savings to list")
 
+    find = commands.add_parser("find", help="best normal and hidden-city ticket for one trip")
+    find.add_argument("origin", help="airport code, e.g. DEL")
+    find.add_argument("destination", help="airport code, e.g. BOM")
+    find.add_argument("date", help="YYYY-MM-DD")
+    find.add_argument(
+        "--max-searches", type=int, default=config.MAX_BEYOND_SEARCHES,
+        help="cities beyond the destination to check",
+    )
+
     args = parser.parse_args()
     if args.command == "budget":
         cmd_budget(args)
@@ -140,6 +189,8 @@ def main():
         cmd_scan(args)
     elif args.command == "report":
         cmd_report(args)
+    elif args.command == "find":
+        cmd_find(args)
 
 
 if __name__ == "__main__":
