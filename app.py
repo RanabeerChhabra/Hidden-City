@@ -1,8 +1,8 @@
 """The web app: a search page plus one API endpoint that runs a trip search.
 
-Everything lives under /hiddencity, so it can sit at rana.beer/hiddencity.
+Everything lives under /hidden-city, so it can sit at rana.beer/hidden-city.
 
-Run it locally with:  python app.py   then open http://localhost:5050/hiddencity/
+Run it locally with:  python app.py   then open http://localhost:5050/hidden-city/
 """
 
 from datetime import date
@@ -12,13 +12,13 @@ from flask import Blueprint, Flask, jsonify, redirect, render_template, request
 
 from hiddencity import airports, client, config, trip
 
-PREFIX = "/hiddencity"
+PREFIX = "/hidden-city"
 
 # Static files live in public/ because Vercel serves that folder straight from
 # its CDN. Locally, Flask serves the same folder at the same address.
 app = Flask(
     __name__,
-    static_folder="public/hiddencity/static",
+    static_folder="public/hidden-city/static",
     static_url_path=f"{PREFIX}/static",
 )
 site = Blueprint("site", __name__, url_prefix=PREFIX)

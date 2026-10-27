@@ -32,10 +32,10 @@ The full data is reproducible from the cache: `python -m hiddencity report` writ
 
 Search any route between **88 Indian airports** on any future date. For example, **Delhi → Mumbai on 18 Nov** shows the best normal ticket next to the best hidden-city ticket (a longer ticket that stops in Mumbai first).
 
-Live at **[rana.beer/hiddencity](https://rana.beer/hiddencity)**. To run it locally:
+Live at **[rana.beer/hidden-city](https://rana.beer/hidden-city)**. To run it locally:
 
 ```bash
-python app.py          # then open http://localhost:5050/hiddencity/
+python app.py          # then open http://localhost:5050/hidden-city/
 python -m hiddencity find DEL BOM 2026-11-18     # the same search in the terminal
 ```
 
