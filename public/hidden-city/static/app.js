@@ -140,8 +140,8 @@ async function runSearch(query, includeHidden) {
   button.disabled = true;
   results.hidden = true;
   showStatus(includeHidden
-    ? `<span class="spinner"></span>Checking cities beyond ${query.destination} for hidden-city fares…`
-    : `<span class="spinner"></span>Searching ${query.origin} → ${query.destination}…`);
+    ? `Searching cities past ${query.destination}. This takes a few seconds.`
+    : `Searching ${query.origin} to ${query.destination}.`);
 
   try {
     const response = await fetch(window.SEARCH_URL, {
@@ -196,30 +196,30 @@ function render() {
   const r = lastResult;
   const names = r.airport_names;
   document.getElementById("route-title").textContent =
-    `${names[r.origin]} (${r.origin}) → ${names[r.destination]} (${r.destination})`;
+    `${names[r.origin]} to ${names[r.destination]}`;
 
   const dateText = new Date(r.date + "T00:00").toLocaleDateString("en-IN", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
-  const n = r.cities_searched.length;
-  let meta = `${dateText} · ${n} route${n === 1 ? "" : "s"} checked ` +
-    `(${r.cached_searches} saved, ${r.live_searches} live)`;
+  let meta = dateText;
   if (r.prices_age_minutes != null) {
     const m = r.prices_age_minutes;
-    meta += m < 2 ? " · prices checked just now"
-      : m < 60 ? ` · prices checked ${m} min ago`
-      : ` · prices checked ${Math.round(m / 60)} h ago`;
+    meta += m < 2 ? ". Prices checked just now."
+      : m < 60 ? `. Prices checked ${m} min ago.`
+      : `. Prices checked ${Math.round(m / 60)} h ago.`;
   }
-  if (r.problems.length) meta += ` · ${r.problems.length} couldn't be searched right now`;
+  if (r.problems.length) {
+    const n = r.problems.length;
+    meta += ` ${n} ${n === 1 ? "search" : "searches"} failed, so this list may be missing fares.`;
+  }
   document.getElementById("meta").textContent = meta;
 
-  // Offer the hidden-city check until it has been run for this trip.
-  const cta = document.getElementById("hidden-cta");
-  cta.hidden = r.hidden_checked;
+  // Offer the longer-ticket check until it has been run for this trip.
+  document.getElementById("hidden-cta").hidden = r.hidden_checked;
   if (!r.hidden_checked) {
     document.getElementById("hidden-cta-text").textContent =
-      `We'll check cities beyond ${names[r.destination]} for tickets that stop there first` +
-      (r.hidden_cost ? ` (${r.hidden_cost} more searches).` : ".");
+      `Looks for tickets past ${names[r.destination]} that stop there first` +
+      (r.hidden_cost ? `. Uses ${r.hidden_cost} more ${r.hidden_cost === 1 ? "search" : "searches"}.` : ".");
   }
 
   drawTabs();
@@ -227,47 +227,25 @@ function render() {
   results.hidden = false;
 }
 
-function bestOverallTicket(r) {
-  if (r.best_overall === "hidden") return r.best_hidden;
-  if (r.best_overall === "normal") return r.best_normal;
-  return null;
-}
-
 function drawTabs() {
   const r = lastResult;
-  const best = bestOverallTicket(r);
   const tabs = [
-    {
-      id: "best",
-      label: "Best overall",
-      price: best ? rupees(best.price) : "–",
-      sub: r.best_overall === "hidden" ? `Hidden city · save ${rupees(r.saving)}`
-        : r.hidden_checked ? "Normal ticket" : "Hidden-city not checked yet",
-    },
-    {
-      id: "normal",
-      label: "Normal tickets",
-      price: r.best_normal ? rupees(r.best_normal.price) : "–",
-      sub: `${r.normal.length} options`,
-    },
-    {
-      id: "hidden",
-      label: "Hidden-city",
-      price: r.best_hidden ? rupees(r.best_hidden.price) : "–",
-      sub: r.hidden_checked ? `${r.hidden.length} options` : "Not checked yet",
-    },
+    { id: "normal", label: `Normal tickets (${r.normal.length})` },
   ];
+  if (r.hidden_checked) {
+    tabs.unshift({ id: "best", label: "All, cheapest first" });
+    tabs.push({ id: "hidden", label: `Longer tickets (${r.hidden.length})` });
+  }
 
   sortTabs.innerHTML = "";
+  sortTabs.hidden = tabs.length === 1;
   for (const tab of tabs) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "sort-tab" + (tab.id === activeTab ? " active" : "");
+    button.className = "tab" + (tab.id === activeTab ? " active" : "");
     button.setAttribute("role", "tab");
-    button.innerHTML =
-      `<div class="label">${tab.label}</div>` +
-      `<div class="price">${tab.price}</div>` +
-      `<div class="sub">${escapeHtml(tab.sub)}</div>`;
+    button.setAttribute("aria-selected", tab.id === activeTab ? "true" : "false");
+    button.textContent = tab.label;
     button.addEventListener("click", () => {
       activeTab = tab.id;
       drawTabs();
@@ -285,7 +263,6 @@ function drawList() {
   } else if (activeTab === "hidden") {
     tickets = r.hidden.map((t) => ({ ticket: t, hidden: true }));
   } else {
-    // Best overall: everything, cheapest first.
     tickets = [
       ...r.normal.map((t) => ({ ticket: t, hidden: false })),
       ...r.hidden.map((t) => ({ ticket: t, hidden: true })),
@@ -297,74 +274,57 @@ function drawList() {
 
   if (tickets.length === 0) {
     const message = activeTab === "hidden"
-      ? (r.hidden_checked
-        ? "No hidden-city tickets found for this trip. Normal tickets are your best bet."
-        : "Hidden-city fares haven't been checked yet. Use the button above.")
-      : "No flights found for this trip.";
-    list.innerHTML = `<div class="empty">${message}</div>`;
+      ? "No longer tickets stop here on this date."
+      : "No flights found for this date.";
+    list.innerHTML = `<p class="empty">${message}</p>`;
     return;
   }
 
-  tickets.slice(0, 30).forEach((item, index) => {
-    list.appendChild(card(item.ticket, item.hidden, activeTab !== "normal" && activeTab !== "hidden" && index === 0));
-  });
+  const shown = tickets.slice(0, 30);
+  shown.forEach((item, index) => list.appendChild(row(item.ticket, item.hidden, index === 0)));
+  if (tickets.length > shown.length) {
+    const more = document.createElement("p");
+    more.className = "small more";
+    more.textContent = `Showing the cheapest ${shown.length} of ${tickets.length}.`;
+    list.appendChild(more);
+  }
 }
 
-function card(t, hidden, isBest) {
+function row(t, hidden, isFirst) {
   const r = lastResult;
   const el = document.createElement("article");
-  el.className = "card" + (isBest ? " best" : "");
+  el.className = "row" + (isFirst ? " first" : "");
 
-  // For a hidden-city ticket the traveller's trip ends at the first stop.
+  // For a longer ticket, the traveller's trip ends at the first stop.
   const arrive = hidden ? t.first_stop_arrival_time : t.final_arrival_time;
-  const arriveCode = hidden ? t.first_stop : t.final_destination;
   const duration = hidden ? t.first_leg_duration_min : t.duration_min;
 
-  let stopsText;
-  if (hidden) stopsText = `<span class="stops-text direct">You get off here</span>`;
-  else if (t.stops === 0) stopsText = `<span class="stops-text direct">Direct</span>`;
-  else stopsText = `<span class="stops-text via">${t.stops} stop${t.stops > 1 ? "s" : ""} · ${escapeHtml(t.first_stop)}</span>`;
+  let length;
+  if (hidden) length = `${hoursMinutes(duration)} to ${escapeHtml(t.first_stop)}`;
+  else if (t.stops === 0) length = `${hoursMinutes(duration)}, direct`;
+  else length = `${hoursMinutes(duration)}, via ${escapeHtml(t.first_stop)}`;
 
-  const badges = [];
-  if (isBest) badges.push(`<span class="badge best">Best overall</span>`);
-  if (hidden) badges.push(`<span class="badge hidden">Hidden city · get off at ${escapeHtml(t.first_stop)}</span>`);
-  if (hidden && r.best_normal && t.price < r.best_normal.price) {
-    badges.push(`<span class="badge saving">Save ${rupees(r.best_normal.price - t.price)}</span>`);
+  let note = "";
+  if (hidden) {
+    const final = r.airport_names[t.final_destination] || t.final_destination;
+    note = `Book to ${escapeHtml(final)} and get off at ${escapeHtml(r.airport_names[t.first_stop] || t.first_stop)}.`;
+    if (r.best_normal) {
+      const difference = r.best_normal.price - t.price;
+      if (difference > 0) note += ` ${rupees(difference)} less than the cheapest normal ticket.`;
+      else if (difference < 0) note += ` ${rupees(-difference)} more than the cheapest normal ticket.`;
+    }
   }
 
-  const note = hidden
-    ? `<div class="note">Ticket is booked to <strong>${escapeHtml(r.airport_names[t.final_destination] || t.final_destination)} (${escapeHtml(t.final_destination)})</strong> via ${escapeHtml(t.flight_numbers)}. Leave the airport at ${escapeHtml(t.first_stop)} and skip the last flight.</div>`
-    : `<div class="note">${escapeHtml(t.flight_numbers)}</div>`;
-
-  const logo = t.airline_logo ? `<img src="${escapeHtml(t.airline_logo)}" alt="">` : "";
   const deal = t.search_url
-    ? `<a class="deal" href="${escapeHtml(t.search_url)}" target="_blank" rel="noopener">View deal →</a>`
-    : "";
+    ? `<a class="deal" href="${escapeHtml(t.search_url)}" target="_blank" rel="noopener">Google Flights</a>`
+    : `<span></span>`;
 
   el.innerHTML = `
-    <div class="card-main">
-      ${badges.length ? `<div class="badges">${badges.join("")}</div>` : ""}
-      <div class="flight">
-        <div class="airline">${logo}<span>${escapeHtml(t.all_airlines)}</span></div>
-        <div>
-          <div class="time">${clock(t.departure_time)}</div>
-          <div class="code">${escapeHtml(t.origin)}</div>
-        </div>
-        <div class="path">
-          <div>${hoursMinutes(duration)}</div>
-          <div class="line"></div>
-          ${stopsText}
-        </div>
-        <div class="end">
-          <div class="time">${clock(arrive)}</div>
-          <div class="code">${escapeHtml(arriveCode)}</div>
-        </div>
-      </div>
-      ${note}
-    </div>
-    <div class="card-side">
-      <div class="big">${rupees(t.price)}</div>
-      ${deal}
-    </div>`;
+    <div class="times">${clock(t.departure_time)} to ${clock(arrive)}</div>
+    <div class="who">${escapeHtml(t.all_airlines)} <span class="flight-no">${escapeHtml(t.flight_numbers)}</span></div>
+    <div class="length">${length}</div>
+    <div class="price">${rupees(t.price)}</div>
+    ${deal}
+    ${note ? `<div class="note">${note}</div>` : ""}`;
   return el;
 }

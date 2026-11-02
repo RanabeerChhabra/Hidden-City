@@ -33,7 +33,7 @@ def test_root_redirects_to_hidden_city():
 def test_home_page_loads():
     response = client.get("/hidden-city/")
     assert response.status_code == 200
-    assert b"HIDDEN CITY" in response.data
+    assert b"Hidden City" in response.data
     assert b"/hidden-city/static/style.css" in response.data
 
 
