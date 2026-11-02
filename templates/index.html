@@ -6,19 +6,20 @@
   <title>Hidden City</title>
   <meta name="description" content="Find connecting flights in India that cost less than flying direct to the city they stop in.">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <div class="page">
-    <header>
+  <header class="band top">
+    <div class="page">
       <a class="logo" href="{{ url_for('site.home') }}">
         <img src="{{ url_for('static', filename='logo-mark-dark.png') }}" alt="" width="48" height="30">
         <span>Hidden City</span>
       </a>
-    </header>
 
-    <main>
-      <p class="intro">Sometimes a ticket from Delhi to Goa with a stop in Mumbai costs less than a ticket from Delhi to Mumbai. You can book the longer one and leave the airport at the stop. This looks for those fares on flights inside India.</p>
+      <p class="headline">Sometimes the longer flight is cheaper.</p>
+      <p class="intro">A ticket from Delhi to Goa with a stop in Mumbai can cost less than a ticket from Delhi to Mumbai. You can book the longer one and leave the airport at the stop. This looks for those fares on flights inside India.</p>
 
       <form id="search" autocomplete="off">
         <div class="field">
@@ -26,7 +27,7 @@
           <input id="origin" class="airport-input" data-code="DEL" value="Delhi (DEL)" placeholder="City or airport" role="combobox" aria-expanded="false" aria-controls="origin-list" required>
           <ul id="origin-list" class="suggestions" role="listbox" hidden></ul>
         </div>
-        <button type="button" id="swap" aria-label="Swap From and To">swap</button>
+        <button type="button" id="swap" aria-label="Swap From and To">&#8644;</button>
         <div class="field">
           <label for="destination">To</label>
           <input id="destination" class="airport-input" data-code="BOM" value="Mumbai (BOM)" placeholder="City or airport" role="combobox" aria-expanded="false" aria-controls="destination-list" required>
@@ -39,7 +40,11 @@
         <button type="submit" class="go">Search</button>
       </form>
       <p class="small">One way, one adult, economy.</p>
+    </div>
+  </header>
 
+  <main>
+    <div class="page">
       <p id="status" class="status" hidden></p>
 
       <section id="results" hidden>
@@ -54,19 +59,31 @@
         <div id="list"></div>
       </section>
 
-      <section class="about">
+    </div>
+
+    <section class="band found">
+      <div class="page">
         <h2>What I found</h2>
-        <p>In October 2026 I searched fares from Delhi to 41 cities on 5 dates. On 19 of 195 routes, a longer ticket beat the cheapest direct flight to the city it stops in. The best saving on those routes averaged &#8377;676, and the largest was &#8377;1,816. Jammu had one on all 5 dates, mostly on flights that carry on to Srinagar or Leh. So these fares are real, but they aren't common.</p>
+        <p class="big">In October 2026 I searched fares from Delhi to 41 cities on 5 dates. On <b>19 of 195 routes</b>, a longer ticket beat the cheapest direct flight to the city it stops in. The best saving on those routes averaged <b>&#8377;676</b>, and the largest was <b>&#8377;1,816</b>.</p>
+        <p>Jammu had one on all 5 dates, mostly on flights that carry on to Srinagar or Leh. So these fares are real, but they aren't common.</p>
+      </div>
+    </section>
+
+    <section class="band how">
+      <div class="page">
         <h2>How it works</h2>
         <p>A search shows normal fares first. "Check longer tickets" then searches a few cities past your destination and keeps the tickets that stop there first. Prices come from Google Flights through SerpApi and can change by the time you book. Nothing is sold here: the links open the same search on Google Flights.</p>
-        <p class="small">
-          <a href="https://github.com/RanabeerChhabra/Hidden-City">Code and data notes</a>
-          &nbsp; <a href="/">Ranabeer Chhabra</a>
-          {% if searches_left is not none %}&nbsp; {{ searches_left }} searches left this month{% endif %}
-        </p>
-      </section>
-    </main>
-  </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="band foot">
+    <div class="page">
+      <a href="https://github.com/RanabeerChhabra/Hidden-City">Code and data notes</a>
+      <a href="/">Ranabeer Chhabra</a>
+      {% if searches_left is not none %}<span>{{ searches_left }} searches left this month</span>{% endif %}
+    </div>
+  </footer>
 
   <script>
     window.AIRPORTS = {{ airports|tojson }};

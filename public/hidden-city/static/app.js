@@ -293,7 +293,7 @@ function drawList() {
 function row(t, hidden, isFirst) {
   const r = lastResult;
   const el = document.createElement("article");
-  el.className = "row" + (isFirst ? " first" : "");
+  el.className = "row" + (isFirst ? " first" : "") + (hidden ? " longer" : "");
 
   // For a longer ticket, the traveller's trip ends at the first stop.
   const arrive = hidden ? t.first_stop_arrival_time : t.final_arrival_time;
@@ -315,13 +315,14 @@ function row(t, hidden, isFirst) {
     }
   }
 
+  const logo = t.airline_logo ? `<img src="${escapeHtml(t.airline_logo)}" alt="">` : "";
   const deal = t.search_url
     ? `<a class="deal" href="${escapeHtml(t.search_url)}" target="_blank" rel="noopener">Google Flights</a>`
     : `<span></span>`;
 
   el.innerHTML = `
     <div class="times">${clock(t.departure_time)} to ${clock(arrive)}</div>
-    <div class="who">${escapeHtml(t.all_airlines)} <span class="flight-no">${escapeHtml(t.flight_numbers)}</span></div>
+    <div class="who">${logo}<span>${escapeHtml(t.all_airlines)}</span> <span class="flight-no">${escapeHtml(t.flight_numbers)}</span></div>
     <div class="length">${length}</div>
     <div class="price">${rupees(t.price)}</div>
     ${deal}
