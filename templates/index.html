@@ -6,15 +6,13 @@
   <title>Hidden City</title>
   <meta name="description" content="Find connecting flights in India that cost less than flying direct to the city they stop in.">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="band top">
+  <header class="top">
     <div class="page">
       <a class="logo" href="{{ url_for('site.home') }}">
-        <img src="{{ url_for('static', filename='logo-mark-dark.png') }}" alt="" width="48" height="30">
+        <img src="{{ url_for('static', filename='logo-mark-light.png') }}" alt="" width="48" height="30">
         <span>Hidden City</span>
       </a>
 
@@ -61,23 +59,15 @@
 
     </div>
 
-    <section class="band found">
-      <div class="page">
-        <h2>What I found</h2>
-        <p class="big">In October 2026 I searched fares from Delhi to 41 cities on 5 dates. On <b>19 of 195 routes</b>, a longer ticket beat the cheapest direct flight to the city it stops in. The best saving on those routes averaged <b>&#8377;676</b>, and the largest was <b>&#8377;1,816</b>.</p>
-        <p>Jammu had one on all 5 dates, mostly on flights that carry on to Srinagar or Leh. So these fares are real, but they aren't common.</p>
-      </div>
-    </section>
-
-    <section class="band how">
-      <div class="page">
-        <h2>How it works</h2>
-        <p>A search shows normal fares first. "Check longer tickets" then searches a few cities past your destination and keeps the tickets that stop there first. Prices come from Google Flights through SerpApi and can change by the time you book. Nothing is sold here: the links open the same search on Google Flights.</p>
-      </div>
+    <section class="about page">
+      <h2>What I found</h2>
+      <p>In October 2026 I searched fares from Delhi to 41 cities on 5 dates. On <b>19 of 195 routes</b>, a longer ticket beat the cheapest direct flight to the city it stops in. The best saving on those routes averaged <b>&#8377;676</b>, and the largest was <b>&#8377;1,816</b>. Jammu had one on all 5 dates, mostly on flights that carry on to Srinagar or Leh. So these fares are real, but they aren't common.</p>
+      <h2>How it works</h2>
+      <p>A search shows normal fares first. "Check longer tickets" then searches a few cities past your destination and keeps the tickets that stop there first. Prices come from Google Flights through SerpApi and can change by the time you book. Nothing is sold here: the links open the same search on Google Flights.</p>
     </section>
   </main>
 
-  <footer class="band foot">
+  <footer class="foot">
     <div class="page">
       <a href="https://github.com/RanabeerChhabra/Hidden-City">Code and data notes</a>
       <a href="/">Ranabeer Chhabra</a>
